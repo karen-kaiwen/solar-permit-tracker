@@ -1,0 +1,138 @@
+---
+title: 108-114 科技產業園區案件清冊
+Author: Kai-Wen Huang
+Updated: 2025-12-29
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(writexl)
+library(openxlsx)
+```
+
+
+## 路徑設定（每次更新只需改這裡）
+
+
+```{r}
+PATH_同意備案   <- "YOUR/PATH/approve_filling_YYYYMMDD.xlsx"
+PATH_設備登記   <- "YOUR/PATH/設備登記總表_YYYYMMDD.xlsx"
+PATH_上個月清冊  <- "YOUR/PATH/上個月清冊.xlsx"
+
+REPORT_DATE    <- "YYYMMDD"   # 本次報告日期，格式：民國年月日
+```
+
+
+
+# 資料載入
+```{r}
+同意備案總表 <- read_excel(PATH_同意備案)
+設備登記總表 <- read_excel(PATH_設備登記)
+
+上個月清冊 <- read_excel(PATH_上個月清冊, skip = 1) %>%
+  rename_with(~ gsub("\\s+", "", .x)) %>%
+  mutate(完工併聯日期 = as.Date(as.numeric(完工併聯日期), origin = "1899-12-30"))
+```
+
+
+## 共用篩選函數
+```{r}
+filter_solar_cases <- function(df, date_col) {
+  df %>%
+    filter(聯絡人姓名 != "my data" | is.na(聯絡人姓名)) %>%
+    filter(format(.data[[date_col]], "%Y") >= 2019, !is.na(.data[[date_col]])) %>%
+    filter(太陽光電案件屬性二 == "YOUR_AGENCY_NAME") %>%
+    filter(設置位置 %in% c("屋頂型", "屋頂型,地面型")) %>%
+    filter(設備型別 == "第三型") %>%
+    filter(發電設備種類 == "太陽光電(PV)")
+}
+```
+
+
+# 同意備案總表清理
+```{r}
+同意備案總表_f <- 同意備案總表 %>%
+  mutate(
+    台電傳送併聯日期 = as.Date(as.numeric(台電傳送併聯日期), origin = "1899-12-30"),
+    核准函發文日期   = as.Date(核准函發文日期, format = "%d%m%Y"),
+    系統選取併聯日期 = as.Date(系統選取併聯日期, format = "%d%m%Y")
+  ) %>%
+  filter(不列入備案核准統計之案件 != TRUE | is.na(不列入備案核准統計之案件)) %>%
+  filter_solar_cases("核准函發文日期") %>%
+  mutate(併聯日期 = coalesce(系統選取併聯日期, 台電傳送併聯日期)) %>%
+  rename(
+    同備核准函發文日期 = 核准函發文日期,
+    同備核准函發文字號 = 核准函發文字號
+  ) %>%
+  select(
+    申請人或機構, 辦理機關,
+    設置場址_地址_, 設置場址_地號_,
+    建物所有權人, 建物管理者,
+    總裝置容量_kW_,
+    同備核准函發文日期, 同意備案編號, 同備核准函發文字號,
+    台電傳送併聯日期, 系統選取併聯日期, 併聯日期,
+    台電傳送併聯容量_kW_, 系統選取併聯容量_kW_
+  )
+
+```
+
+# 設備登記總表清理
+```{r}
+設備登記總表_f <- 設備登記總表 %>%
+  mutate(核准函發文日期 = as.Date(核准函發文日期, format = "%s%m%Y")) %>%
+  filter_solar_cases("核准函發文日期") %>%
+  rename(
+    設登核准函發文日期 = 核准函發文日期,
+    設登核准函發文字號 = 核准函發文字號
+  ) %>%
+  select(同意備案編號, 設備登記編號, 設登核准函發文日期, 設登核准函發文字號)
+```
+
+# 資料品質檢查
+```{r}
+stopifnot("同備發現重複編號" = !any(duplicated(同意備案總表_f$同意備案編號)))
+stopifnot("設登發現重複編號，left_join 後列數可能增加" = !any(duplicated(設備登記總表_f$同意備案編號)))
+```
+
+# 合併同備及設登
+
+```{r}
+同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date <- left_join(
+  同意備案總表_f, 設備登記總表_f, by = "同意備案編號"
+)
+```
+
+# 與上個月清冊比對，找出新增案件
+```{r}
+新增同備_Date <- anti_join(
+  同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date,
+  上個月清冊,
+  by = "同意備案編號"
+)
+
+新增設登_Date <- anti_join(
+  同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date,
+  上個月清冊,
+  by = "設備登記編號"
+)
+
+新增併網_Date <- 同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date %>%
+  filter(
+    同意備案編號 %in% 上個月清冊$同意備案編號,
+    !(設備登記編號 %in% 上個月清冊$設備登記編號) | 設備登記編號 == "" | is.na(設備登記編號)
+  )
+```
+
+
+
+# 匯出
+```{r}
+write_xlsx(同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date,
+           paste0("同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_", REPORT_DATE, ".xlsx"))
+write_xlsx(新增同備_Date,  paste0("新增同備_",  REPORT_DATE, ".xlsx"))
+write_xlsx(新增設登_Date,  paste0("新增設登_",  REPORT_DATE, ".xlsx"))
+write_xlsx(新增併網_Date,  paste0("新增併網_",  REPORT_DATE, ".xlsx"))
+
+```
