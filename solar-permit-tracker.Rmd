@@ -1,5 +1,5 @@
 ---
-title: 108-114 科技產業園區案件清冊
+title: Solar Permit Case Tracker — Science-Based Industrial Parks (2019–2025)
 Author: Kai-Wen Huang
 Updated: 2025-12-29
 ---
@@ -13,7 +13,7 @@ library(openxlsx)
 ```
 
 
-## 路徑設定（每次更新只需改這裡）
+## Path Configuration (update these two variables each month)
 
 
 ```{r}
@@ -26,7 +26,7 @@ REPORT_DATE    <- "YYYMMDD"   # 本次報告日期，格式：民國年月日
 
 
 
-# 資料載入
+# Data Loading
 ```{r}
 同意備案總表 <- read_excel(PATH_同意備案)
 設備登記總表 <- read_excel(PATH_設備登記)
@@ -37,7 +37,7 @@ REPORT_DATE    <- "YYYMMDD"   # 本次報告日期，格式：民國年月日
 ```
 
 
-## 共用篩選函數
+## Shared Filter Function
 ```{r}
 filter_solar_cases <- function(df, date_col) {
   df %>%
@@ -51,7 +51,7 @@ filter_solar_cases <- function(df, date_col) {
 ```
 
 
-# 同意備案總表清理
+# Clean Approval Filings
 ```{r}
 同意備案總表_f <- 同意備案總表 %>%
   mutate(
@@ -78,7 +78,7 @@ filter_solar_cases <- function(df, date_col) {
 
 ```
 
-# 設備登記總表清理
+# Clean Equipment Registrations
 ```{r}
 設備登記總表_f <- 設備登記總表 %>%
   mutate(核准函發文日期 = as.Date(核准函發文日期, format = "%s%m%Y")) %>%
@@ -90,13 +90,13 @@ filter_solar_cases <- function(df, date_col) {
   select(同意備案編號, 設備登記編號, 設登核准函發文日期, 設登核准函發文字號)
 ```
 
-# 資料品質檢查
+# Data Quality Checks
 ```{r}
 stopifnot("同備發現重複編號" = !any(duplicated(同意備案總表_f$同意備案編號)))
 stopifnot("設登發現重複編號，left_join 後列數可能增加" = !any(duplicated(設備登記總表_f$同意備案編號)))
 ```
 
-# 合併同備及設登
+# Merge Approvals and Equipment Registrations
 
 ```{r}
 同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date <- left_join(
@@ -104,7 +104,7 @@ stopifnot("設登發現重複編號，left_join 後列數可能增加" = !any(du
 )
 ```
 
-# 與上個月清冊比對，找出新增案件
+# Compare Against Last Month — Identify New Cases
 ```{r}
 新增同備_Date <- anti_join(
   同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date,
@@ -127,7 +127,7 @@ stopifnot("設登發現重複編號，left_join 後列數可能增加" = !any(du
 
 
 
-# 匯出
+# Export
 ```{r}
 write_xlsx(同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_Date,
            paste0("同備設登科技產業園區屋頂型太陽光電申設案件清冊_reference_", REPORT_DATE, ".xlsx"))
