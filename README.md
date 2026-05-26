@@ -1,6 +1,6 @@
 # Solar Permit Tracker — Automated Monthly Case Report (R)
 
-Automated comparison of ~90,000 solar energy permit records per month, replacing manual Excel filtering with a reproducible R pipeline. Reduces monthly reporting time by **50–80%**.
+Automated comparison of ~90,000 solar energy permit records per month, replacing manual Excel filtering with a reproducible R pipeline. Reduces monthly reporting time by **20-30%**.
 
 ![R](https://img.shields.io/badge/R-276DC3?style=flat&logo=r&logoColor=white)
 ![tidyverse](https://img.shields.io/badge/tidyverse-1A162D?style=flat&logo=r&logoColor=white)
