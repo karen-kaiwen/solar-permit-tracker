@@ -1,7 +1,7 @@
 # 科技產業園區太陽光電申設案件清冊自動化
 
 每月自動比對約 9 萬筆太陽光電申設資料，篩選出當月新增的同意備案、
-設備登記及併網案件，取代人工 Excel 篩選作業，將每月例行作業時間縮短 50–80%。
+設備登記及併網案件，取代人工 Excel 篩選作業，將每月例行作業時間縮短 20-30%。
 
 ![R](https://img.shields.io/badge/R-276DC3?style=flat&logo=r&logoColor=white)
 ![tidyverse](https://img.shields.io/badge/tidyverse-1A162D?style=flat&logo=r&logoColor=white)
